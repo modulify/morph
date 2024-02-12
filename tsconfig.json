@@ -1,0 +1,17 @@
+{
+  "compilerOptions": {
+    "esModuleInterop": true,
+    "module": "esnext",
+    "moduleResolution": "node",
+    "paths": {
+      "@/*": ["./src/*"]
+    },
+    "target": "es6"
+  },
+  "include": [
+    "src/**/*.ts",
+    "src/shims-*.d.ts",
+    "tests/**/*.ts",
+    "rollup.config.ts"
+  ]
+}
