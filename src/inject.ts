@@ -1,6 +1,8 @@
+import type { Key } from '../types/scaffolding'
+
 import fail from '@/fail'
 
-const _inject = (destination: Record<string, unknown>, path: string, value: unknown): void => {
+const _inject = (destination: Record<Key, unknown>, path: Key, value: unknown): void => {
   if (typeof destination[path] === 'function') {
     const fn = destination[path] as (value: unknown) => void
 
@@ -10,10 +12,10 @@ const _inject = (destination: Record<string, unknown>, path: string, value: unkn
   }
 }
 
-export default (destination: unknown, path: string, value: unknown): void => {
+export default (destination: unknown, path: Key, value: unknown): void => {
   if (typeof destination !== 'object' || destination === null) {
     return fail('Scalar destinations not supported by default injector')
   }
 
-  _inject(destination as Record<string, unknown>, path, value)
+  _inject(destination as Record<Key, unknown>, path, value)
 }

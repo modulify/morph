@@ -1,8 +1,3 @@
-import type {
-  Extractor,
-  Processor,
-} from '../types'
-
 import {
   describe,
   expect,
@@ -26,7 +21,7 @@ describe('Morph', () => {
       .move('_id', 'id')
       .move('_name', 'name')
 
-    expect(morph.apply({
+    expect(morph.convert({
       _id: 1,
       _name: 'Star Wars. Episode IV: A New Hope',
     })).toEqual({
@@ -40,7 +35,7 @@ describe('Morph', () => {
       .move('_id', 'id')
       .move('_name', 'name')
 
-    expect(() => morph.apply({
+    expect(() => morph.convert({
       _id: 1,
     })).toThrow('[@modulify/morph] Path _name is not reachable in the source')
   })
@@ -50,7 +45,7 @@ describe('Morph', () => {
       .move('_id', 'id')
       .move('_name', 'name', '%not present%')
 
-    expect(morph.apply({
+    expect(morph.convert({
       _id: 1,
     })).toEqual({
       id: 1,
@@ -63,7 +58,7 @@ describe('Morph', () => {
       .move('_id', 'id')
       .move('_name', 'name', '%not present%')
 
-    expect(morph.apply({
+    expect(morph.convert({
       _id: 1,
       _name: 'Star Wars. Episode IV: A New Hope',
     })).toEqual({
@@ -81,7 +76,7 @@ describe('Morph', () => {
       .move('_id', 'id')
       .move('_name', 'name', fallback)
 
-    expect(morph.apply({
+    expect(morph.convert({
       _id: 1,
     })).toEqual({
       id: 1,
@@ -93,7 +88,7 @@ describe('Morph', () => {
     const morph = new MorphOne()
       .move('_studio.name', 'studio')
 
-    expect(morph.apply({
+    expect(morph.convert({
       _studio: { name: 'Lucasfilm Ltd. LLC' },
     })).toEqual({
       studio: 'Lucasfilm Ltd. LLC',
@@ -108,9 +103,9 @@ describe('Morph', () => {
     }
 
     const morph = new MorphOne()
-      .extract('studio', ((source: FilmPayload) => source._studio.name) as Extractor)
+      .extract('studio', (source: FilmPayload) => source._studio.name)
 
-    expect(morph.apply({
+    expect(morph.convert({
       _studio: { name: 'Lucasfilm Ltd. LLC' },
     })).toEqual({
       studio: 'Lucasfilm Ltd. LLC',
@@ -120,9 +115,9 @@ describe('Morph', () => {
   test('uses callback processor', () => {
     const morph = new MorphOne()
       .move('_name', 'name')
-      .process('name', toUpperCase as Processor)
+      .process('name', toUpperCase)
 
-    expect(morph.apply({
+    expect(morph.convert({
       _name: 'Star Wars. Episode IV: A New Hope',
     })).toEqual({
       name: 'STAR WARS. EPISODE IV: A NEW HOPE',
@@ -135,9 +130,9 @@ describe('Morph', () => {
       .process('name', [
         toUpperCase,
         (value: unknown) => '<<' + value + '>>',
-      ] as Processor[])
+      ])
 
-    expect(morph.apply({
+    expect(morph.convert({
       _name: 'Star Wars. Episode IV: A New Hope',
     })).toEqual({
       name: '<<STAR WARS. EPISODE IV: A NEW HOPE>>',
@@ -148,14 +143,14 @@ describe('Morph', () => {
     const morph = new MorphOne()
       .move('_name', 'name')
       .process('name', [
-        toUpperCase as Processor,
+        toUpperCase,
         [
-          ((value: unknown) => '<' + value + '>') as Processor,
-          ((value: unknown) => '<' + value + '>') as Processor,
+          (value: unknown) => '<' + value + '>',
+          (value: unknown) => '<' + value + '>',
         ],
       ])
 
-    expect(morph.apply({
+    expect(morph.convert({
       _name: 'Star Wars. Episode IV: A New Hope',
     })).toEqual({
       name: '<<STAR WARS. EPISODE IV: A NEW HOPE>>',
@@ -168,7 +163,7 @@ describe('Morph', () => {
       .process('studio', new MorphOne()
         .move('_name', 'name'))
 
-    expect(morph.apply({
+    expect(morph.convert({
       _id: 1,
       _name: 'Star Wars. Episode IV: A New Hope',
       _studio: { _name: 'Lucasfilm Ltd. LLC' },
@@ -184,7 +179,7 @@ describe('Morph', () => {
         .move('_name', 'name')
     )
 
-    expect(morph.apply([{
+    expect(morph.convert([{
       _id: 1,
       _name: 'Star Wars. Episode IV: A New Hope',
     }, {
@@ -205,13 +200,11 @@ describe('Morph', () => {
       .process('studio', new MorphOne()
         .move('_name', 'name'))
       .move('_films', 'films')
-      .process('films', ((value: unknown[]) => new MorphEach(new MorphOne()
+      .process('films', new MorphEach(new MorphOne()
         .move('_id', 'id')
-        .move('_name', 'name'))
-        .apply(value)
-      ) as Processor)
+        .move('_name', 'name')))
 
-    expect(morph.apply({
+    expect(morph.convert({
       _studio: { _name: 'Lucasfilm Ltd. LLC' },
       _films: [{
         _id: 1,
@@ -240,7 +233,7 @@ describe('Morph', () => {
 
     date.setHours(0, 0)
 
-    morph.apply({
+    morph.convert({
       hours: 10,
       minutes: 30,
     }, date)
@@ -249,20 +242,34 @@ describe('Morph', () => {
     expect(date.getMinutes()).toEqual(30)
   })
 
+  test('custom destination', () => {
+    const morph = new MorphOne(() => new Date())
+      .move('hours', 'setHours')
+      .move('minutes', 'setMinutes')
+
+    const date = morph.convert({
+      hours: 10,
+      minutes: 30,
+    })
+
+    expect(date.getHours()).toEqual(10)
+    expect(date.getMinutes()).toEqual(30)
+  })
+
   test('mapping by custom injector', () => {
     const date = new Date()
-    const morph = new MorphOne()
+    const morph = new MorphOne<unknown, Date>()
       .move('hours', 'setHours')
       .move('minutes', 'minutes')
-      .inject('minutes', (destination: unknown, _: string, value: unknown) => {
-        if (destination instanceof Date && typeof value === 'number') {
+      .inject('minutes', (destination, _, value) => {
+        if (typeof value === 'number') {
           destination.setMinutes(value)
         }
       })
 
     date.setHours(0, 0)
 
-    morph.apply({
+    morph.convert({
       hours: 10,
       minutes: 30,
     }, date)

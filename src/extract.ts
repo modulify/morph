@@ -1,3 +1,5 @@
+import type { Key } from '../types/scaffolding'
+
 import fail from '@/fail'
 
 const _guard = (source: unknown, message: string): void|never => {
@@ -6,13 +8,13 @@ const _guard = (source: unknown, message: string): void|never => {
   }
 }
 
-const _has = (object: Record<string, unknown>, property: string, message?: string): void => {
+const _has = (object: Record<string, unknown>, property: Key, message?: string): void => {
   if (!Object.prototype.hasOwnProperty.call(object, property)) {
     fail(message || 'Object has no property ' + property)
   }
 }
 
-const _extract = (source: Record<string, unknown>, path: string[], prev: string[]): unknown => {
+const _extract = (source: Record<string, unknown>, path: Key[], prev: Key[]): unknown => {
   if (path.length === 0) {
     return source
   }
@@ -35,10 +37,14 @@ const _extract = (source: Record<string, unknown>, path: string[], prev: string[
 
 export default <Source = unknown>(
   source: Source,
-  path: string | string[],
+  path: Key | Key[],
   fallback: unknown = undefined
 ): unknown => {
-  const _path = typeof path === 'string' ? path.split('.') : path
+  const _path = typeof path === 'string'
+    ? path.split('.')
+    : typeof path === 'number'
+      ? [path]
+      : path
 
   try {
     _guard(source, 'Path extracting not available for scalar types')
