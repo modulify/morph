@@ -17,9 +17,6 @@ const input = path.join(__dirname, '/src/index.ts')
 const output: OutputOptions = {
   exports: 'named',
   dir: path.join(__dirname, '/dist'),
-  globals: {
-    vue: 'Vue',
-  },
 }
 
 const plugins: InputPluginOption = [

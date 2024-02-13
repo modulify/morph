@@ -8,6 +8,7 @@ import type {
 import type {
   Key,
   Maybe,
+  Path,
   Recursive,
   Returns,
 } from '../types/scaffolding'
@@ -18,16 +19,14 @@ import inject from '@/inject'
 
 export default class MorphOne<
   Source = unknown,
-  Target = unknown
+  Target = Record<Key, unknown>
 > implements Morph<Source, Target> {
   private readonly _target: Returns<Target>
   private readonly _extractors: Map<Key, Extractor<Source>>
   private readonly _injectors: Map<Key, Injector>
   private readonly _processors: Map<Key, (Morph | Processor)[]>
 
-  /**
-   * @param {() => unknown} target Defaults to () => ({})
-   */
+  /** @param target Defaults to () => ({}) */
   constructor (target: Returns<Target> = () => ({} as Target)) {
     this._target = target
     this._extractors = new Map<Key, Extractor<Source>>()
@@ -53,14 +52,14 @@ export default class MorphOne<
   /**
    * Associate a member to another member given their property paths.
    *
-   * @param {Key | Key[]} srcPath
-   * @param {Key} dstPath
-   * @param fallback
+   * @param srcPath Path to property in a source
+   * @param dstPath
+   * @param fallback Defaults to undefined
    *
    * @return {this} Current instance
    */
   move (
-    srcPath: Key | Key[],
+    srcPath: Path<Source, Key | Key[]>,
     dstPath: Key,
     fallback: unknown = undefined
   ): MorphOne<Source, Target> {

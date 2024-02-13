@@ -85,7 +85,9 @@ describe('Morph', () => {
   })
 
   test('extracts properties from deep paths', () => {
-    const morph = new MorphOne()
+    const morph = new MorphOne<{
+      _studio: { name: string };
+    }>()
       .move('_studio.name', 'studio')
 
     expect(morph.convert({
@@ -96,14 +98,12 @@ describe('Morph', () => {
   })
 
   test('uses callback extractor', () => {
-    type FilmPayload = {
-      _studio: {
-        name: string;
-      };
-    }
-
-    const morph = new MorphOne()
-      .extract('studio', (source: FilmPayload) => source._studio.name)
+    const morph = new MorphOne<{
+      _studio: { name: string };
+    }, {
+      studio: string;
+    }>()
+      .extract('studio', source => source._studio.name)
 
     expect(morph.convert({
       _studio: { name: 'Lucasfilm Ltd. LLC' },
@@ -158,7 +158,21 @@ describe('Morph', () => {
   })
 
   test('nested mapping', () => {
-    const morph = new MorphOne()
+    type FilmPayload = {
+      _id: number;
+      _name: string;
+      _studio: { _name: string; };
+    }
+
+    type Film = {
+      id: number;
+      name: string;
+      studio: { name: string; };
+    }
+
+    const morph = new MorphOne<FilmPayload, Film>()
+      .move('_id', 'id')
+      .move('_name', 'name')
       .move('_studio', 'studio')
       .process('studio', new MorphOne()
         .move('_name', 'name'))
@@ -168,13 +182,25 @@ describe('Morph', () => {
       _name: 'Star Wars. Episode IV: A New Hope',
       _studio: { _name: 'Lucasfilm Ltd. LLC' },
     })).toEqual({
+      id: 1,
+      name: 'Star Wars. Episode IV: A New Hope',
       studio: { name: 'Lucasfilm Ltd. LLC' },
     })
   })
 
   test('array mapping', () => {
+    type FilmPayload = {
+      _id: number;
+      _name: string;
+    }
+
+    type Film = {
+      id: number;
+      name: string;
+    }
+
     const morph = new MorphEach(
-      new MorphOne()
+      new MorphOne<FilmPayload, Film>()
         .move('_id', 'id')
         .move('_name', 'name')
     )
@@ -227,7 +253,10 @@ describe('Morph', () => {
 
   test('mapping by setter', () => {
     const date = new Date()
-    const morph = new MorphOne()
+    const morph = new MorphOne<{
+      hours: number;
+      minutes: number;
+    }, Date>()
       .move('hours', 'setHours')
       .move('minutes', 'setMinutes')
 

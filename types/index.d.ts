@@ -1,7 +1,7 @@
 import type {
-  ArrayElement,
   Key,
   Maybe,
+  Path,
   Recursive,
   Returns,
 } from './scaffolding'
@@ -28,11 +28,9 @@ export interface Morph<Source = unknown, Target = unknown> {
 
 export declare class MorphOne<
   Source = unknown,
-  Target = unknown
+  Target = Record<Key, unknown>
 > implements Morph<Source, Target> {
-  /**
-   * @param {() => unknown} target Defaults to () => ({})
-   */
+  /** @param target Defaults to () => ({}) */
   constructor (target?: () => Target);
 
   convert (source: Source): Target;
@@ -41,14 +39,14 @@ export declare class MorphOne<
   /**
    * Associate a member to another member given their property paths.
    *
-   * @param {Key | Key[]} srcPath
-   * @param {Key} dstPath
-   * @param fallback undefined by default
+   * @param srcPath Path to property in a source
+   * @param dstPath
+   * @param fallback Defaults to undefined
    *
    * @return {this} Current instance
    */
   move (
-    srcPath: Key | Key[],
+    srcPath: Path<Source, Key | Key[]>,
     dstPath: Key,
     fallback?: unknown
   ): MorphOne<Source, Target>;
@@ -96,13 +94,10 @@ export declare class MorphOne<
 }
 
 export default class MorphEach<
-  Source extends unknown[] = unknown[],
-  Target extends unknown[] = unknown[]
-> implements Morph<Source, Target> {
-  constructor (morph: Morph<
-    ArrayElement<Source>,
-    ArrayElement<Target>
-  >);
+  Source = unknown,
+  Target = Record<Key, unknown>
+> implements Morph<Source[], Target[]> {
+  constructor (morph: Morph<Source, Target>);
 
-  convert (source: Source): Target;
+  convert (source: Source[]): Target[];
 }

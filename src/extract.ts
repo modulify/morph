@@ -1,4 +1,7 @@
-import type { Key } from '../types/scaffolding'
+import type {
+  Key,
+  Path,
+} from '../types/scaffolding'
 
 import fail from '@/fail'
 
@@ -37,7 +40,7 @@ const _extract = (source: Record<string, unknown>, path: Key[], prev: Key[]): un
 
 export default <Source = unknown>(
   source: Source,
-  path: Key | Key[],
+  path: Path<Source, Key | Key[]>,
   fallback: unknown = undefined
 ): unknown => {
   const _path = typeof path === 'string'
@@ -49,7 +52,7 @@ export default <Source = unknown>(
   try {
     _guard(source, 'Path extracting not available for scalar types')
 
-    return _extract(source as Record<string, unknown>, _path, [])
+    return _extract(source as Record<string, unknown>, _path as Key[], [])
   } catch (error) {
     if (fallback !== undefined) {
       return typeof fallback === 'function' ? fallback() : fallback

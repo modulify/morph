@@ -1,23 +1,17 @@
-import type { ArrayElement } from '../types/scaffolding'
+import type { Key } from '../types/scaffolding'
 import type { Morph } from '../types'
 
 export default class MorphEach<
-  Source extends unknown[] = unknown[],
-  Target extends unknown[] = unknown[]
-> implements Morph<Source, Target> {
-  private readonly _morph: Morph<
-    ArrayElement<Source>,
-    ArrayElement<Target>
-  >
+  Source = unknown,
+  Target = Record<Key, unknown>
+> implements Morph<Source[], Target[]> {
+  private readonly _morph: Morph<Source, Target>
 
-  constructor (morph: Morph<
-    ArrayElement<Source>,
-    ArrayElement<Target>
-  >) {
+  constructor (morph: Morph<Source, Target>) {
     this._morph = morph
   }
 
-  convert (source: Source): Target {
-    return source.map(v => this._morph.convert(v as ArrayElement<Source>)) as Target
+  convert (source: Source[]): Target[] {
+    return source.map(v => this._morph.convert(v))
   }
 }
