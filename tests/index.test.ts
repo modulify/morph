@@ -308,4 +308,26 @@ describe('Morph', () => {
     expect(date.getHours()).toEqual(10)
     expect(date.getMinutes()).toEqual(30)
   })
+
+  test('overrides', () => {
+    const morph1 = new MorphOne()
+      .move('_id', 'id')
+      .move('_name', 'name')
+
+    const morph2 = morph1.override().exclude('name')
+
+    expect(morph1.convert({
+      _id: 1,
+      _name: 'Star Wars. Episode IV: A New Hope',
+    })).toEqual({
+      id: 1,
+      name: 'Star Wars. Episode IV: A New Hope',
+    })
+
+    expect(morph2.convert({
+      _id: 1,
+    })).toEqual({
+      id: 1,
+    })
+  })
 })
