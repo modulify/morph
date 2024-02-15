@@ -330,4 +330,37 @@ describe('Morph', () => {
       id: 1,
     })
   })
+
+  test('resets injector by null', () => {
+    const morph1 = new MorphOne<{
+      hours: number;
+      minutes: number;
+    }, Date>(() => new Date())
+      .move('hours', 'setHours')
+      .inject('minutes', (destination, value) => {
+        if (typeof value === 'number') {
+          destination.setMinutes(value)
+        }
+      })
+
+    const date1 = morph1.convert({
+      hours: 10,
+      minutes: 30,
+    })
+
+    expect(date1.getHours()).toEqual(10)
+    expect(date1.getMinutes()).toEqual(30)
+
+    const morph2 = morph1
+      .override(() => new Date(2000, 0, 1, 0, 0))
+      .inject('minutes', null)
+
+    const date2 = morph2.convert({
+      hours: 10,
+      minutes: 30,
+    })
+
+    expect(date2.getHours()).toEqual(10)
+    expect(date2.getMinutes()).toEqual(0)
+  })
 })
