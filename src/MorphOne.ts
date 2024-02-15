@@ -7,6 +7,7 @@ import type {
 
 import type {
   Key,
+  KeyOf,
   Maybe,
   Path,
   Recursive,
@@ -22,28 +23,31 @@ export default class MorphOne<
   Target = Record<Key, unknown>
 > implements Morph<Source, Target> {
   private readonly _target: Returns<Target>
-  private readonly _extractors: Map<Key, Extractor<Source>>
-  private readonly _injectors: Map<Key, Injector>
-  private readonly _processors: Map<Key, (Morph | Processor)[]>
+  private readonly _extractors: Map<KeyOf<Target>, Extractor<Source>>
+  private readonly _injectors: Map<Path<Source, Key | Key[]>, Injector<Target>>
+  private readonly _processors: Map<KeyOf<Target>, (Morph | Processor)[]>
 
   /** @param target Defaults to () => ({}) */
   constructor (target: Returns<Target> = () => ({} as Target)) {
     this._target = target
-    this._extractors = new Map<Key, Extractor<Source>>()
-    this._injectors = new Map<Key, Injector>()
-    this._processors = new Map<Key, (Morph | Processor)[]>()
+    this._extractors = new Map<KeyOf<Target>, Extractor<Source>>()
+    this._injectors = new Map<Path<Source, Key | Key[]>, Injector<Target>>()
+    this._processors = new Map<KeyOf<Target>, (Morph | Processor)[]>()
   }
 
   convert (source: Source, target?: Target): Target {
     const t = target !== undefined ? target : this._target()
 
-    this._extractors.forEach((extract, path) => {
-      const _inject = this._injectors.get(path) ?? inject
-      const processors = this._processors.get(path) ?? []
+    this._extractors.forEach((extract, key) => {
+      const processors = this._processors.get(key) ?? []
 
-      _inject(t, path, processors.reduce((raw, process) => {
+      inject(t, key, processors.reduce((raw, process) => {
         return 'convert' in process ? process.convert(raw) : process(raw)
       }, extract(source) as unknown))
+    })
+
+    this._injectors.forEach((inject, path) => {
+      inject(t, extract(source, path))
     })
 
     return t
@@ -53,50 +57,70 @@ export default class MorphOne<
    * Associate a member to another member given their property paths.
    *
    * @param srcPath Path to property in a source
-   * @param dstPath
+   * @param dstKey
    * @param fallback Defaults to undefined
    *
    * @return {this} Current instance
    */
   move (
     srcPath: Path<Source, Key | Key[]>,
-    dstPath: Key,
+    dstKey: KeyOf<Target>,
     fallback: unknown = undefined
   ): MorphOne<Source, Target> {
-    return this.extract(dstPath, (source: Source) => extract(source, srcPath, fallback))
+    return this.extract(dstKey, (source: Source) => extract(source, srcPath, fallback))
   }
 
   /**
    * Applies a field extractor policy to a member.
    *
-   * @param {Key} path
-   * @param {Extractor} by
+   * @param key
+   * @param by
    *
    * @return {this} Current instance
    */
-  extract (path: Key, by: Extractor<Source>): MorphOne<Source, Target> {
-    this._extractors.set(path, by)
+  extract (
+    key: KeyOf<Target>,
+    by: Extractor<Source>
+  ): MorphOne<Source, Target> {
+    this._extractors.set(key, by)
     return this
   }
 
-  inject (path: Key, by: Injector<Target>): MorphOne<Source, Target> {
-    this._injectors.set(path, by)
+  inject (
+    path: Path<Source, Key | Key[]>,
+    by: Injector<Target> | null
+  ): MorphOne<Source, Target> {
+    const member = Array.isArray(path)
+      ? path.join('.') as Path<Source, Key | Key[]>
+      : path
+
+    if (by === null) {
+      if (this._injectors.has(member)) {
+        this._injectors.delete(member)
+      }
+    } else {
+      this._injectors.set(member, by)
+    }
+
     return this
   }
 
   /**
    * Applies a processor to the field.
    *
-   * @param {Key} path
-   * @param {Recursive<Morph | Processor>} by Morph or callback
+   * @param key
+   * @param by Morph or callback
    *
    * @return {this} Current instance
    */
-  process (path: Key, by: Recursive<Morph | Processor>): MorphOne<Source, Target> {
+  process (
+    key: KeyOf<Target>,
+    by: Recursive<Morph | Processor>
+  ): MorphOne<Source, Target> {
     if (Array.isArray(by)) {
-      this._processors.set(path, flatten(by))
+      this._processors.set(key, flatten(by))
     } else {
-      this._processors.set(path, [by])
+      this._processors.set(key, [by])
     }
 
     return this
@@ -105,14 +129,14 @@ export default class MorphOne<
   /**
    * Excludes destination member
    *
-   * @param {Key} dstPath Member to exclude
+   * @param key Member to exclude
    *
    * @return {this} Current instance
    */
-  exclude (dstPath: Key): MorphOne<Source, Target> {
-    [this._extractors, this._processors, this._injectors].forEach(map => {
-      if (map.has(dstPath)) {
-        map.delete(dstPath)
+  exclude (key: KeyOf<Target>): MorphOne<Source, Target> {
+    [this._extractors, this._processors].forEach(map => {
+      if (map.has(key)) {
+        map.delete(key)
       }
     })
 
@@ -122,22 +146,22 @@ export default class MorphOne<
   override <
     NewTarget = unknown,
     Factory extends Maybe<Returns<NewTarget>> = undefined
-  > (destination: Factory = undefined): MorphOne<Source, Factory extends undefined ? Target : ReturnType<Factory>> {
+  > (target: Factory = undefined): MorphOne<Source, undefined extends Factory ? Target : ReturnType<Factory>> {
     const morph = new MorphOne<
       Source,
-      Factory extends undefined ? Target : ReturnType<Factory>
-    >((destination ?? this._target) as Returns<Factory extends undefined ? Target : ReturnType<Factory>>)
+      undefined extends Factory ? Target : ReturnType<Factory>
+    >((target ?? this._target) as Returns<undefined extends Factory ? Target : ReturnType<Factory>>)
 
-    this._extractors.forEach((extractor, path) => {
-      morph._extractors.set(path, extractor)
+    this._extractors.forEach((extractor, key) => {
+      morph._extractors.set(key as KeyOf<undefined extends Factory ? Target : ReturnType<Factory>>, extractor)
     })
 
     this._injectors.forEach((injector, key) => {
-      morph._injectors.set(key, injector)
+      morph._injectors.set(key, injector as Injector<undefined extends Factory ? Target : ReturnType<Factory>>)
     })
 
-    this._processors.forEach((processors, path) => {
-      morph._processors.set(path, processors)
+    this._processors.forEach((processors, key) => {
+      morph._processors.set(key as KeyOf<undefined extends Factory ? Target : ReturnType<Factory>>, processors)
     })
 
     return morph

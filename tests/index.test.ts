@@ -287,10 +287,12 @@ describe('Morph', () => {
 
   test('mapping by custom injector', () => {
     const date = new Date()
-    const morph = new MorphOne<unknown, Date>()
+    const morph = new MorphOne<{
+      hours: number;
+      minutes: number;
+    }, Date>()
       .move('hours', 'setHours')
-      .move('minutes', 'minutes')
-      .inject('minutes', (destination, _, value) => {
+      .inject('minutes', (destination, value) => {
         if (typeof value === 'number') {
           destination.setMinutes(value)
         }

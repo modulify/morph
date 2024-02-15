@@ -1,5 +1,6 @@
 import type {
   Key,
+  KeyOf,
   Maybe,
   Path,
   Recursive,
@@ -11,9 +12,8 @@ export type Extractor<
   Value = unknown
 > = (source: Source) => Value
 
-export type Injector<Destination = unknown> = (
-  destination: Destination,
-  path: Key,
+export type Injector<Target = unknown> = (
+  destination: Target,
   value: unknown
 ) => void
 
@@ -40,47 +40,56 @@ export declare class MorphOne<
    * Associate a member to another member given their property paths.
    *
    * @param srcPath Path to property in a source
-   * @param dstPath
+   * @param dstKey
    * @param fallback Defaults to undefined
    *
    * @return {this} Current instance
    */
   move (
     srcPath: Path<Source, Key | Key[]>,
-    dstPath: Key,
+    dstKey: KeyOf<Target>,
     fallback?: unknown
   ): MorphOne<Source, Target>;
 
   /**
    * Applies a field extractor policy to a member.
    *
-   * @param {Key} path
-   * @param {Extractor} by
+   * @param key
+   * @param by
    *
    * @return {this} Current instance
    */
-  extract (path: Key, by: Extractor<Source>): MorphOne<Source, Target>;
+  extract (
+    key: KeyOf<Target>,
+    by: Extractor<Source>
+  ): MorphOne<Source, Target>;
 
-  inject (path: Key, by: Injector<Target>): MorphOne<Source, Target>;
+  inject (
+    path: Path<Source, Key | Key[]>,
+    by: Injector<Target> | null
+  ): MorphOne<Source, Target>;
 
   /**
    * Applies a processor to the field.
    *
-   * @param {Key} path
-   * @param {Recursive<Morph | Processor>} by Morph or callback or array of Morph & callbacks
+   * @param key
+   * @param by Morph or callback
    *
    * @return {this} Current instance
    */
-  process (path: Key, by: Recursive<Morph | Processor>): MorphOne<Source, Target>;
+  process (
+    key: KeyOf<Target>,
+    by: Recursive<Morph | Processor>
+  ): MorphOne<Source, Target>;
 
   /**
    * Excludes destination member
    *
-   * @param {Key} dstPath Member to exclude
+   * @param key Member to exclude
    *
    * @return {this} Current instance
    */
-  exclude (dstPath: Key): MorphOne<Source, Target>;
+  exclude (key: KeyOf<Target>): MorphOne<Source, Target>;
 
   override <
     NewTarget = unknown,
