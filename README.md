@@ -1,4 +1,4 @@
-# @modulify/morph
+# `@modulify/morph`
 
 [![codecov](https://codecov.io/gh/modulify/morph/branch/main/graph/badge.svg)](https://codecov.io/gh/modulify/morph)
 [![Tests Status](https://github.com/modulify/morph/actions/workflows/tests.yml/badge.svg)](https://github.com/modulify/morph/actions)
