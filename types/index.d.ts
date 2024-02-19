@@ -102,7 +102,7 @@ export declare class MorphOne<
   >;
 }
 
-export default class MorphEach<
+export declare class MorphEach<
   Source = unknown,
   Target = Record<Key, unknown>
 > implements Morph<Source[], Target[]> {

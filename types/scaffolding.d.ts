@@ -3,7 +3,7 @@ export type Key = number | string
 export type KeyOf<T> = unknown extends T ? Key : keyof T
 
 export type Maybe<T> = T extends undefined
-  ? undefined
+  ? T
   : T | undefined
 
 export type PathArray<T, K extends keyof T> =
